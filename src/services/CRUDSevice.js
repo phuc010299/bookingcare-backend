@@ -8,7 +8,7 @@ let createNewUser = async (data) => {
         let hashPasswordBcrypt = await hashUserPassword(data.password)
         await db.User.create({
             email: data.email,
-            passWord: hashPasswordBcrypt,
+            password: hashPasswordBcrypt,
             firstName: data.firstName,
             lastName: data.lastName,
             address: data.address,
@@ -16,9 +16,9 @@ let createNewUser = async (data) => {
             gender: data.gender === '1' ? true : false,
             roleId: data.roleId,
         })
-        return('Create a new user successfully')
-    } 
-    
+        return ('Create a new user successfully')
+    }
+
     catch (error) {
         return error
     }
@@ -29,31 +29,31 @@ let hashUserPassword = async (password) => {
         let hashPassword = await bcrypt.hashSync(password, salt);
         return hashPassword
     } catch (error) {
-        
+
     }
 };
 
 let getAllUsers = async () => {
     try {
-        let users = await db.User.findAll({raw: true})
+        let users = await db.User.findAll({ raw: true })
         return users
     } catch (error) {
-        
+
     }
 };
 
 let getEditUser = async (userId) => {
     try {
-        let user = await db.User.findOne({where: {id: userId}, raw: true})
+        let user = await db.User.findOne({ where: { id: userId }, raw: true })
         return user
     } catch (error) {
-        
+
     }
 };
 let updateUser = async (data) => {
     try {
-        
-        let user = await db.User.findOne({where: {id: data.id}})
+
+        let user = await db.User.findOne({ where: { id: data.id } })
         if (user) {
             user.firstName = data.firstName;
             user.lastName = data.lastName;
@@ -66,23 +66,23 @@ let updateUser = async (data) => {
         let allUsers = await db.User.findAll()
         return allUsers
     } catch (error) {
-        
+
     }
 };
 
 let deleteUser = async (userId) => {
     try {
-        let user = await db.User.findOne({where: {id: userId}})
+        let user = await db.User.findOne({ where: { id: userId } })
         if (user) {
             await user.destroy();
-            return ;
+            return;
         }
     } catch (error) {
-        
+
     }
 };
 
 
 module.exports = {
-    createNewUser, getAllUsers,getEditUser, updateUser, deleteUser
+    createNewUser, getAllUsers, getEditUser, updateUser, deleteUser
 }
