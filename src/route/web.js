@@ -1,6 +1,7 @@
 const express = require('express');
 const homeController = require('../controllers/homeController');
 const userController = require('../controllers/userController');
+const doctorController = require('../controllers/doctorController');
 
 
 let router = express.Router();
@@ -14,7 +15,6 @@ let innitWebRoutes = (app) => {
     router.get('/get-crud', homeController.displayGetCrud)
     router.get('/edit-crud', homeController.getEditCrud)
 
-
     router.post('/api/login', userController.handleLogin)
     router.get('/api/get-all-users', userController.handleGetAllUsers)
     router.post('/api/create-new-user', userController.handleCreateNewUser)
@@ -22,6 +22,8 @@ let innitWebRoutes = (app) => {
     router.delete('/api/delete-user', userController.handleDeleteUser)
 
     router.get('/api/allcode', userController.getAllcode)
+    router.get('/api/top-doctor-home', doctorController.getTopDoctorHome)
+
 
 
 
