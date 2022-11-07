@@ -12,10 +12,10 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       maxNumber: {
-        type: Sequelize.INTEGER
+        type: Sequelize.STRING
       },
-      data: {
-        type: Sequelize.DATE
+      date: {
+        type: Sequelize.STRING
       },
       timeType: {
         type: Sequelize.STRING
