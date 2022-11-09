@@ -197,15 +197,6 @@ let bulkCreateSchedule = async (data) => {
                 raw: true
             })
 
-            // convert date
-            // if (existing && existing.length > 0) {
-            //     existing.map((item) => {
-            //         // item.date = new Date(item.date).getTime()
-            //         return item
-            //     })
-            // }
-
-
             let toCreate = _.differenceWith(schedule, existing, (a, b) => {
                 return a.timeType === b.timeType && a.date === +b.date
             })
@@ -250,6 +241,7 @@ let getScheduleByDate = async (doctorId, date) => {
                 },
                 include: [
                     { model: db.Allcode, as: 'timeTypeData', attributes: ['valueEn', 'valueVi'] },
+                    { model: db.User, as: 'doctorData', attributes: ['firstName', 'lastName'] },
 
                 ],
                 raw: false,
@@ -303,6 +295,55 @@ let getExtraInforDoctorById = async (doctorId) => {
         return error
     }
 }
+
+let getProfileDoctorById = async (inputId) => {
+    try {
+        if (!inputId) {
+            return {
+                errCode: 1,
+                errMessage: 'Missing required parameter'
+            }
+        } else {
+            let data = await db.User.findOne({
+                where: { id: inputId },
+                attributes: {
+                    exclude: ['password']
+                },
+                include: [
+                    { model: db.Markdown, attributes: ['contentHTML', 'description', 'contentMarkdown'] },
+                    { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
+                    {
+                        model: db.Doctor_infor,
+                        attributes: { exclude: ['doctorId', 'id'] },
+                        include: [
+                            { model: db.Allcode, as: 'priceTypeData', attributes: ['valueEn', 'valueVi'] },
+                            { model: db.Allcode, as: 'paymentTypeData', attributes: ['valueEn', 'valueVi'] },
+                            { model: db.Allcode, as: 'provinceTypeData', attributes: ['valueEn', 'valueVi'] },
+                        ]
+                    },
+
+
+                ],
+                raw: false,
+                nest: true
+            })
+            if (data && data.image) {
+                data.image = new Buffer(data.image, 'base64').toString('binary');
+
+            }
+            if (!data) data = {}
+            return {
+
+                errCode: 0,
+                data: data
+
+            }
+        }
+    }
+    catch (error) {
+        return error
+    }
+}
 module.exports = {
     getTopDoctorHome,
     getAllDoctors,
@@ -310,5 +351,6 @@ module.exports = {
     getInforDoctorById,
     bulkCreateSchedule,
     getScheduleByDate,
-    getExtraInforDoctorById
+    getExtraInforDoctorById,
+    getProfileDoctorById
 }

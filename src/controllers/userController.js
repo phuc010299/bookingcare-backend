@@ -1,6 +1,6 @@
 // const { JSON } = require('sequelize');
 const db = require('../models/index');
-const userSevice = require('../services/userSevice');
+const userService = require('../services/userService');
 
 
 let handleLogin = async (req, res) => {
@@ -14,7 +14,7 @@ let handleLogin = async (req, res) => {
             message: 'Missing inputs parameter'
         })
     }
-    let userData = await userSevice.handleUserLogin(email, password)
+    let userData = await userService.handleUserLogin(email, password)
     // check email exist
     // compare password
     // return userInfo
@@ -38,7 +38,7 @@ let handleGetAllUsers = async (req, res) => {
         })
     }
 
-    let users = await userSevice.getAllUsers(id);
+    let users = await userService.getAllUsers(id);
     return res.status(200).json({
         errCode: 0,
         errMessage: 'okay',
@@ -48,7 +48,7 @@ let handleGetAllUsers = async (req, res) => {
 
 let handleCreateNewUser = async (req, res) => {
     try {
-        let message = await userSevice.createNewUser(req.body)
+        let message = await userService.createNewUser(req.body)
         return res.status(200).json(message)
     } catch (error) {
         return error
@@ -59,7 +59,7 @@ let handleEditUser = async (req, res) => {
     let data = req.body
 
     if (data) {
-        let message = await userSevice.updateUserData(data);
+        let message = await userService.updateUserData(data);
         return res.status(200).json(message)
     } else {
         return {
@@ -77,7 +77,7 @@ let handleDeleteUser = async (req, res) => {
     try {
         let id = await req.body.id
         if (id) {
-            let message = await userSevice.deleteUser(id)
+            let message = await userService.deleteUser(id)
             return res.status(200).json(message)
         }
     } catch (error) {
@@ -89,7 +89,7 @@ let handleDeleteUser = async (req, res) => {
 
 let getAllcode = async (req, res) => {
     try {
-        let data = await userSevice.getAllcode(req.query.type);
+        let data = await userService.getAllcode(req.query.type);
         return res.status(200).json(data)
     } catch (error) {
         console.log('Get all code error:', error)
