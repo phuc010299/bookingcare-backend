@@ -4,6 +4,7 @@ var salt = bcrypt.genSaltSync(10);
 require('dotenv').config();
 var _ = require('lodash');
 const { reduce } = require('lodash');
+const emailService = require('./emailService')
 
 const MAX_NUMBER_SCHEDULE = process.env.MAX_NUMBER_SCHEDULE;
 
@@ -39,8 +40,12 @@ let getAllDoctors = async () => {
     try {
         let doctors = await db.User.findAll({
             where: { roleId: 'R2' }, attributes: {
-                exclude: ['image', 'password']
-            }
+                exclude: ['password']
+            }, include: [
+                { model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi'] },
+            ],
+            raw: true,
+            nest: true
         });
         return {
             errCode: 0,
@@ -51,14 +56,30 @@ let getAllDoctors = async () => {
     }
 }
 
+let checkRequiredFields = (inputData) => {
+    let arrFields = ['doctorId', 'contentHTML', 'contentMarkdown', 'description',
+        'action', 'selectPrice', 'selectPayment', 'selectProvince',
+        'nameClinic', 'addressClinic', 'note', 'specialtyId',]
+
+    let isValid = true;
+    let element = ""
+    for (let i = 0; i < arrFields.length; i++) {
+        if (!inputData[arrFields[i]]) {
+            isValid = false;
+            element = arrFields[i]
+            break;
+        }
+    }
+    return { isValid, element }
+}
+
 let saveDetailInforDoctor = async (inputData) => {
     try {
-        if (!inputData.doctorId || !inputData.contentHTML || !inputData.contentMarkdown || !inputData.description
-            || !inputData.action || !inputData.selectPrice || !inputData.selectPayment || !inputData.selectProvince
-            || !inputData.nameClinic || !inputData.addressClinic || !inputData.note) {
+        let checkObj = checkRequiredFields(inputData)
+        if (checkObj.isValid === false) {
             return {
                 errCode: 1,
-                errMessage: 'Missing required parameter'
+                errMessage: `Missing required parameter: ${checkObj.element} `
             }
         } else {
             // upsert to Markdown
@@ -92,7 +113,6 @@ let saveDetailInforDoctor = async (inputData) => {
                 where: { doctorId: inputData.doctorId },
                 raw: false
             })
-            console.log('check doctorInfor', doctorInfor)
             if (doctorInfor) {
                 doctorInfor.priceId = inputData.selectPrice;
                 doctorInfor.paymentId = inputData.selectPayment;
@@ -100,6 +120,10 @@ let saveDetailInforDoctor = async (inputData) => {
                 doctorInfor.nameClinic = inputData.nameClinic;
                 doctorInfor.addressClinic = inputData.addressClinic;
                 doctorInfor.note = inputData.note;
+                doctorInfor.specialtyId = inputData.specialtyId;
+                doctorInfor.clinicId = inputData.clinicId;
+
+                // doctorInfor.clinicId = inputData.clinicId;
                 await doctorInfor.save()
 
             } else {
@@ -111,6 +135,9 @@ let saveDetailInforDoctor = async (inputData) => {
                     nameClinic: inputData.nameClinic,
                     addressClinic: inputData.addressClinic,
                     note: inputData.note,
+                    specialtyId: inputData.specialtyId,
+                    // clinicId: inputData.clinicId
+
                 })
 
             }
@@ -157,7 +184,7 @@ let getInforDoctorById = async (inputId) => {
                 nest: true
             })
             if (data && data.image) {
-                data.image = new Buffer(data.image, 'base64').toString('binary');
+                data.image = Buffer.from(data.image, 'base64').toString('binary');
 
             }
             if (!data) data = {}
@@ -176,7 +203,6 @@ let getInforDoctorById = async (inputId) => {
 
 let bulkCreateSchedule = async (data) => {
     try {
-        console.log('check data', data)
         if (!data.arrSchedule || !data.doctorId || !data.date) {
             return {
                 errCode: 1,
@@ -200,10 +226,6 @@ let bulkCreateSchedule = async (data) => {
             let toCreate = _.differenceWith(schedule, existing, (a, b) => {
                 return a.timeType === b.timeType && a.date === +b.date
             })
-
-            console.log('check  schedule', schedule)
-            console.log('check existing', existing)
-            console.log('check to create', toCreate)
 
 
             if (toCreate && toCreate.length > 0) {
@@ -328,15 +350,13 @@ let getProfileDoctorById = async (inputId) => {
                 nest: true
             })
             if (data && data.image) {
-                data.image = new Buffer(data.image, 'base64').toString('binary');
+                data.image = Buffer.from(data.image, 'base64').toString('binary');
 
             }
             if (!data) data = {}
             return {
-
                 errCode: 0,
                 data: data
-
             }
         }
     }
@@ -344,6 +364,88 @@ let getProfileDoctorById = async (inputId) => {
         return error
     }
 }
+
+let getListPatientForDoctor = async (doctorId, date) => {
+    try {
+        if (!doctorId || !date) {
+            return {
+                errCode: 1,
+                errMessage: 'Missing required parameter'
+            }
+        } else {
+
+            let data = await db.Booking.findAll({
+                where: {
+                    doctorId: doctorId,
+                    date: date,
+                    statusId: 'S2'
+                },
+                include: [
+                    {
+                        model: db.User, as: 'patientData',
+                        attributes: ['email', 'firstName', 'address', 'gender'],
+                        include: [
+                            { model: db.Allcode, as: 'genderData', attributes: ['valueVi', 'valueEn'] },
+                        ],
+                    },
+                    { model: db.Allcode, as: 'timeTypeDataPatient', attributes: ['valueVi', 'valueEn'] },
+                ],
+                raw: false,
+                nest: true
+            })
+            return {
+                errCode: 0,
+                data: data
+            }
+        }
+    } catch (error) {
+        return error
+    }
+}
+
+let sendRemedy = async (data) => {
+    try {
+        if (!data.email || !data.doctorId || !data.patientId || !data.timeType) {
+            return {
+                errCode: 1,
+                errMessage: 'Missing required parameter'
+            }
+        } else {
+
+
+
+            // send email remedy
+            await emailService.sendRemedyEmail(data)
+
+
+            // update patient status
+            let appointment = await db.Booking.findOne({
+                where: {
+                    doctorId: data.doctorId,
+                    patientId: data.patientId,
+                    timeType: data.timeType,
+                    statusId: 'S2'
+                },
+                raw: false
+            })
+
+            if (appointment) {
+                appointment.statusId = 'S3'
+                await appointment.save()
+            }
+
+            return {
+                errCode: 0,
+                errMessage: 'ok'
+            }
+        }
+        // console.log('check bulkCreateSchedule', typeof schedule)
+
+    } catch (error) {
+
+    }
+}
+
 module.exports = {
     getTopDoctorHome,
     getAllDoctors,
@@ -352,5 +454,7 @@ module.exports = {
     bulkCreateSchedule,
     getScheduleByDate,
     getExtraInforDoctorById,
-    getProfileDoctorById
+    getProfileDoctorById,
+    getListPatientForDoctor,
+    sendRemedy
 }

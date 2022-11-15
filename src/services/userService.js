@@ -5,39 +5,52 @@ var salt = bcrypt.genSaltSync(10);
 
 let handleUserLogin = async (email, password) => {
     try {
-        let userData = {}
-        let isExist = await checkUserEmail(email)
-        if (isExist) {
-            let user = await db.User.findOne({
-                where: { email },
-                attributes: ['email', 'password', 'roleId', 'firstName', 'lastName'],
-                raw: true
-            });
-
-
-            if (user) {
-                // compare the password
-                let check = await bcrypt.compareSync(password, user.password);
-
-                if (check) {
-                    userData.errCode = 0;
-                    userData.errMessage = `ok`;
-                    // user.passWord = undefined;
+        if (!email || !password) {
+            return ({
+                errCode: 1,
+                message: 'Missing inputs parameter'
+            })
+        }
+        else {
+            let isExist = await checkUserEmail(email)
+            if (isExist) {
+                let user = await db.User.findOne({
+                    where: { email },
+                    attributes: ['id', 'email', 'password', 'roleId', 'firstName', 'lastName'],
+                    raw: true
+                });
+                if (user) {
+                    // compare the password
+                    let check = await bcrypt.compareSync(password, user.password);
                     delete user.password;
-                    userData.user = user
+
+                    if (check) {
+                        return ({
+                            errCode: 0,
+                            message: 'ok',
+                            user: user
+                        })
+                    } else {
+                        return ({
+                            errCode: 3,
+                            message: `Wrong password`,
+                        })
+                    }
                 } else {
-                    userData.errCode = 3;
-                    userData.errMessage = `Wrong password`
+                    return ({
+                        errCode: 2,
+                        message: `User's not found`,
+                    })
+
                 }
             } else {
-                userData.errCode = 2;
-                userData.errMessage = `User's not found`
+                return ({
+                    errCode: 1,
+                    message: `You's Email isn't exist in your system. Please try other email addresses`,
+                })
+
             }
-        } else {
-            userData.errCode = 1;
-            userData.errMessage = `You's Email isn't exist in your system. Please try other email addresses`
         }
-        return userData
 
     } catch (error) {
         return
